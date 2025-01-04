@@ -1,0 +1,18 @@
+[package]
+name = "dxf_reader"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+
+dxf = "0.6"
+serde_json = "1.0.133"
+serde = { version = "1.0.215", features = ["derive"] }
+wasm-bindgen = "0.2.97"
+getrandom = { version = "0.2", features = ["js"] }
+quick-xml = "0.37.2"
+xml = "0.8.20"
+

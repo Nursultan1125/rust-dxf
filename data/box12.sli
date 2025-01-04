@@ -1,0 +1,113 @@
+<?xml version="1.0" standalone="yes"?>
+<!--This is the place for comments-->
+<FE_Project Title="box" Description="">
+  <DegreesOfFreedom X="1" Y="1" Z="1" UX="1" UY="1" UZ="1" />
+  <NodesCoordArray NumberOfElem="12">
+    <NodeCoords NdX="0" NdY="0" NdZ="0" />
+    <NodeCoords NdX="3" NdY="0" NdZ="0" />
+    <NodeCoords NdX="0" NdY="3" NdZ="0" />
+    <NodeCoords NdX="3" NdY="3" NdZ="0" />
+    <NodeCoords NdX="0" NdY="0" NdZ="3" />
+    <NodeCoords NdX="0" NdY="3" NdZ="3" />
+    <NodeCoords NdX="3" NdY="0" NdZ="3" />
+    <NodeCoords NdX="3" NdY="3" NdZ="3" />
+    <NodeCoords NdX="-1.5" NdY="0" NdZ="4" />
+    <NodeCoords NdX="-1.5" NdY="3" NdZ="4" />
+    <NodeCoords NdX="4.5" NdY="0" NdZ="4" />
+    <NodeCoords NdX="4.5" NdY="3" NdZ="4" />
+  </NodesCoordArray>
+  <RestrictionsArray NumberOfElem="0" />
+  <ElementsArray NumberOfElem="25">
+    <Element Type="2" Material="3">
+      <Nodes Nd1="1" Nd2="5" Nd3="6" Nd4="3" />
+    </Element>
+    <Element Type="2" Material="3">
+      <Nodes Nd1="3" Nd2="6" Nd3="8" Nd4="4" />
+    </Element>
+    <Element Type="2" Material="3">
+      <Nodes Nd1="4" Nd2="8" Nd3="7" Nd4="2" />
+    </Element>
+    <Element Type="2" Material="3">
+      <Nodes Nd1="2" Nd2="7" Nd3="5" Nd4="1" />
+    </Element>
+    <Element Type="2" Material="3">
+      <Nodes Nd1="1" Nd2="2" Nd3="4" Nd4="3" />
+    </Element>
+    <Element Type="2" Material="3">
+      <Nodes Nd1="5" Nd2="6" Nd3="10" Nd4="9" />
+    </Element>
+    <Element Type="2" Material="3">
+      <Nodes Nd1="7" Nd2="8" Nd3="12" Nd4="11" />
+    </Element>
+    <Element Type="1" Material="1">
+      <Nodes Nd1="1" Nd2="2" />
+    </Element>
+    <Element Type="1" Material="1">
+      <Nodes Nd1="3" Nd2="4" />
+    </Element>
+    <Element Type="1" Material="1">
+      <Nodes Nd1="1" Nd2="3" />
+    </Element>
+    <Element Type="1" Material="1">
+      <Nodes Nd1="2" Nd2="4" />
+    </Element>
+    <Element Type="1" Material="2">
+      <Nodes Nd1="1" Nd2="5" />
+    </Element>
+    <Element Type="1" Material="2">
+      <Nodes Nd1="3" Nd2="6" />
+    </Element>
+    <Element Type="1" Material="2">
+      <Nodes Nd1="2" Nd2="7" />
+    </Element>
+    <Element Type="1" Material="2">
+      <Nodes Nd1="4" Nd2="8" />
+    </Element>
+    <Element Type="1" Material="1">
+      <Nodes Nd1="5" Nd2="6" />
+    </Element>
+    <Element Type="1" Material="1">
+      <Nodes Nd1="7" Nd2="8" />
+    </Element>
+    <Element Type="1" Material="1">
+      <Nodes Nd1="5" Nd2="7" />
+    </Element>
+    <Element Type="1" Material="1">
+      <Nodes Nd1="6" Nd2="8" />
+    </Element>
+    <Element Type="1" Material="1">
+      <Nodes Nd1="5" Nd2="9" />
+    </Element>
+    <Element Type="1" Material="1">
+      <Nodes Nd1="6" Nd2="10" />
+    </Element>
+    <Element Type="1" Material="1">
+      <Nodes Nd1="10" Nd2="9" />
+    </Element>
+    <Element Type="1" Material="1">
+      <Nodes Nd1="7" Nd2="11" />
+    </Element>
+    <Element Type="1" Material="1">
+      <Nodes Nd1="8" Nd2="12" />
+    </Element>
+    <Element Type="1" Material="1">
+      <Nodes Nd1="12" Nd2="11" />
+    </Element>
+  </ElementsArray>
+  <MaterialsArray NumberOfElem="3">
+    <Material Num="1" KindEl="1" H="0.06" Ix="0.000488889" Iy="0.00045" Iz="0.0002" E="3.00083e+007" G="1.20033e+007" IsGeom="1">
+      <SectGeom SGType="Rect" b_OR_D="0.2" h_OR_d="0.3" />
+    </Material>
+    <Material Num="2" KindEl="1" H="0.04" Ix="0.000224" Iy="0.000133333" Iz="0.000133333" E="3.00083e+007" G="1.20033e+007" IsGeom="1">
+      <SectGeom SGType="Rect" b_OR_D="0.2" h_OR_d="0.2" />
+    </Material>
+    <Material Num="3" KindEl="3" H="0.1" F="0.2" E="3.00083e+007" />
+  </MaterialsArray>
+  <NodesLoadingArray NumberOfElem="0" />
+  <ElemHingeArray NumberOfElem="0" />
+  <NodeHingeArray NumberOfElem="0" />
+  <EccentricityArray NumberOfElem="0" />
+  <ElemLoadingArray NumberOfElem="1">
+    <ElemLoading NumElem="8" LoadNumber="1" LoadType="3" LocalSys="0" NDOF="3" PMx="-0" />
+  </ElemLoadingArray>
+</FE_Project>
