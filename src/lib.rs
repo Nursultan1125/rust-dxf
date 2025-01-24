@@ -142,14 +142,14 @@ pub fn sli_to_json(data: &str, tolerance: Option<f64>) -> String {
                                         planes.push(plane);
                                         entity.color_id = planes.len() as i32;
                                     }
-                                    entity.entity_type = match entity.vertices.len() as i32 {
-                                        2 => String::from("LINE"),
-                                        3 => String::from("3DFACE_TRIANGLE"),
-                                        _ => String::from("3DFACE"),
-                                    };
                                 }
 
                             }
+                            entity.entity_type = match entity.vertices.len() as i32 {
+                                2 => String::from("LINE"),
+                                3 => String::from("3DFACE_TRIANGLE"),
+                                _ => String::from("3DFACE"),
+                            };
                         }
                     }
                     _ => {}
@@ -163,9 +163,9 @@ pub fn sli_to_json(data: &str, tolerance: Option<f64>) -> String {
             _ => {}
         }
     }
-    let mut colored_entities: HashMap<i32, HashMap<String, Vec<SerializableEntity>>> = HashMap::new();
-    for entity in entities {
-        colored_entities.entry(entity.color_id).or_insert(HashMap::new()).entry(entity.entity_type.clone()).or_insert(vec![]).push(entity);
+    let mut colored_entities: HashMap<i32, HashMap<&String, Vec<&SerializableEntity>>> = HashMap::new();
+    for entity in entities.iter_mut() {
+        colored_entities.entry(entity.color_id).or_insert(HashMap::new()).entry(&entity.entity_type).or_insert(vec![]).push(entity);
     }
     serde_json::to_string(&colored_entities).expect("Failed to serialize to JSON")
 }
