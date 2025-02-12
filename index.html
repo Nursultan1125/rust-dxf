@@ -19,10 +19,38 @@
 </head>
 <body>
 <h1>Hello, Frontend!</h1>
-<input type="file" id="fileInput"/>
-<div id="cad-view"></div>
-<pre id="output"></pre>
-<script src="index.js" type="module"></script>
+<!--<input type="file" id="fileInput"/>-->
+<!--<div id="cad-view"></div>-->
+<!--<pre id="output"></pre>-->
+<!--<script src="index.js" type="module"></script>-->
+
+<input type="file" id="file-input">
+<input type="file" id="file-input-sli">
+<button onclick="loadAndParseXLSX()">Load and parse XLS</button>
+
+<script type="module">
+    import init, { convert_sli_xsl_to_json } from "./pkg/dxf_reader.js";
+
+    async function loadAndParseXLSX() {
+        await init(); // Инициализация wasm
+
+        let file = document.getElementById("file-input").files[0];
+        let file_sli = document.getElementById("file-input-sli").files[0];
+        const text = await file_sli.text();
+        if (!file) return alert("Выберите файл!");
+
+        let reader = new FileReader();
+        reader.readAsArrayBuffer(file);
+        reader.onload = async () => {
+            let bytes = new Uint8Array(reader.result);
+            let jsonResult = convert_sli_xsl_to_json(text, bytes);
+            console.log("Результат:", JSON.parse(jsonResult));
+        };
+    }
+
+    // Делаем функцию доступной глобально
+    window.loadAndParseXLSX = loadAndParseXLSX;
+</script>
 
 </body>
 </html>
