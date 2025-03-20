@@ -382,7 +382,7 @@ pub fn convert_sli_xsl_to_json(sli_data: &str, data: &[u8]) -> String {
             entities_with_xlsx.push(EntityWithXlsx{
                 entity_type: entity.entity_type.clone(),
                 vertices: entity.vertices.clone(),
-                row: row,
+                row,
             })
         }
 

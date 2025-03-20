@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>DXF to JSON with WebAssembly</title>
+    <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@latest/dist/svg.min.js"></script>
 </head>
 <body>
 
@@ -27,6 +28,8 @@
 <input type="file" id="file-input">
 <input type="file" id="file-input-sli">
 <button onclick="loadAndParseXLSX()">Load and parse XLS</button>
+<div id="svgContainer"></div>
+
 
 <script type="module">
     import init, { convert_sli_xsl_to_json } from "./pkg/dxf_reader.js";
@@ -44,7 +47,144 @@
         reader.onload = async () => {
             let bytes = new Uint8Array(reader.result);
             let jsonResult = convert_sli_xsl_to_json(text, bytes);
-            console.log("Результат:", JSON.parse(jsonResult));
+            const data = JSON.parse(jsonResult)
+            console.log("Результат:", data);
+
+            const dataZ = new Set();
+            for(const item of data){
+                for(const vertex of item.vertices){
+                    dataZ.add(vertex.z)
+                }
+            }
+            for(const z of dataZ) {
+                if (data.filter(item => item.vertices.every(i => i.z === z)).length === 0) {
+                    continue;
+                }
+                console.log(dataZ, data.filter(item => item.vertices.every(i => i.z === z)).length);
+
+                const svg = document.createElement("svg");
+                svg.setAttribute("id", `id-${Math.round(z * 1000)}`);
+                svg.setAttribute("width", "1500");
+                svg.setAttribute("height", "1200");
+                const header = document.createElement("h1");
+                header.textContent = `Z = ${z}`;
+                document.getElementById("svgContainer").append(header);
+                document.getElementById("svgContainer").append(svg);
+
+
+                const draw = SVG().addTo(`#id-${Math.round(z * 1000)}`).size(1500, 1200);
+
+                const scale = 30; // Масштаб
+                const offsetX = 100, offsetY = 150; // Смещение
+                function transformPoint(point) {
+                    return {x: point.y * scale + offsetX, y: point.x * scale + offsetY};
+                }
+
+                // data.reverse()
+                let scales = new Set();
+
+                for (const item of data.filter(item => item.vertices.every(i => i.z === z))) {
+                    scales.add(Math.max(...item.row.as1))
+                }
+
+                const min_scale = Math.min(...Array.from(scales))
+                const max_scale = Math.max(...Array.from(scales))
+                let scalesArray = Array.from(scales)
+                scalesArray.sort()
+                const grad = scalesArray.map((i) => {
+                    return [(i / max_scale), `rgb(255, ${255 - Math.round(i * 255 / max_scale)}, 0)`]
+                })
+
+
+                const gradient = draw.gradient('linear', function (add) {
+                    for (const i of grad) {
+                        add.stop(i[0], i[1]);
+                    }
+                });
+                draw.rect(1500, 20).move(50, 40).fill(gradient);
+
+                const colorScaleMap = Object.fromEntries(grad)
+                for (const [index, item] of data.filter(item => item.vertices.every(i => i.z === z)).entries()) {
+                    let points = item.vertices.map(v => {
+                        const {x, y} = transformPoint(v);
+                        return `${x},${y}`;
+                    }).join(' ');
+                    let scale = Math.max(...item.row.as1)
+                    draw.polygon(points).fill(colorScaleMap[scale / max_scale]).stroke({
+                        width: 1,
+                        color: 'green'
+                    }).attr({'data-index': item.row.id});
+
+                    let centroid = item.vertices.reduce((acc, v) => {
+                        acc.x += v.x;
+                        acc.y += v.y;
+                        return acc;
+                    }, {x: 0, y: 0});
+                    centroid.x /= item.vertices.length;
+                    centroid.y /= item.vertices.length;
+                    let {x, y} = transformPoint(centroid);
+                    draw.text(`${scale}`).center(x, y).font({size: 8}).fill('black');
+                }
+            }
+
+            for (const z of dataZ) {
+
+                // Создаем SVG контейнер
+                // const draw = SVG().addTo(`#id-${z}`).size(1500, 1200);
+                // console.log(z)
+                //
+                // const scale = 30; // Масштаб
+                // const offsetX = 100, offsetY = 150; // Смещение
+                // function transformPoint(point) {
+                //     return {x: point.y * scale + offsetX, y: point.x * scale + offsetY};
+                // }
+                //
+                // data.reverse()
+                // let scales = new Set();
+                //
+                // for (const item of data.filter(item => item.vertices.every(i => i.z === z))) {
+                //     scales.add(Math.max(...item.row.as1))
+                // }
+                //
+                // const min_scale = Math.min(...Array.from(scales))
+                // const max_scale = Math.max(...Array.from(scales))
+                // let scalesArray = Array.from(scales)
+                // scalesArray.sort()
+                // const grad = scalesArray.map((i) => {
+                //     return [(i / max_scale), `rgb(255, ${255 - Math.round(i * 255 / max_scale)}, 0)`]
+                // })
+                //
+                //
+                // const gradient = draw.gradient('linear', function (add) {
+                //     for (const i of grad) {
+                //         add.stop(i[0], i[1]);
+                //     }
+                // });
+                // draw.rect(1500, 20).move(50, 40).fill(gradient);
+                //
+                // const colorScaleMap = Object.fromEntries(grad)
+                // for (const [index, item] of data.filter(item => item.vertices.every(i => i.z === z)).entries()) {
+                //     let points = item.vertices.map(v => {
+                //         const {x, y} = transformPoint(v);
+                //         return `${x},${y}`;
+                //     }).join(' ');
+                //     let scale = Math.max(...item.row.as1)
+                //     draw.polygon(points).fill(colorScaleMap[scale / max_scale]).stroke({
+                //         width: 1,
+                //         color: 'green'
+                //     }).attr({'data-index': item.row.id});
+                //
+                //     let centroid = item.vertices.reduce((acc, v) => {
+                //         acc.x += v.x;
+                //         acc.y += v.y;
+                //         return acc;
+                //     }, {x: 0, y: 0});
+                //     centroid.x /= item.vertices.length;
+                //     centroid.y /= item.vertices.length;
+                //     let {x, y} = transformPoint(centroid);
+                //     draw.text(`${scale}`).center(x, y).font({size: 8}).fill('black');
+                // }
+            }
         };
     }
 
