@@ -377,16 +377,16 @@ pub fn convert_sli_xsl_to_json(sli_data: &str, data: &[u8]) -> String {
     let entities = get_indexes(sli_data);
     let xlsx = parse_xlsx_wasm(data);
     let mut entities_with_xlsx: Vec<EntityWithXlsx> = Vec::new();
-    for row in xlsx {
-        if let Some(entity) = entities.get(row.id as usize - 1) {
-            entities_with_xlsx.push(EntityWithXlsx{
-                entity_type: entity.entity_type.clone(),
-                vertices: entity.vertices.clone(),
-                row,
-            })
-        }
+    // for row in xlsx {
+    //     if let Some(entity) = entities.get(row.id as usize - 1) {
+    //         entities_with_xlsx.push(EntityWithXlsx{
+    //             entity_type: entity.entity_type.clone(),
+    //             vertices: entity.vertices.clone(),
+    //             row,
+    //         })
+    //     }
+    //
+    // }
 
-    }
-
-    serde_json::to_string(&entities_with_xlsx).expect("Failed to serialize to JSON")
+    serde_json::to_string(&entities).expect("Failed to serialize to JSON")
 }

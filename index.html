@@ -28,11 +28,16 @@
 <input type="file" id="file-input">
 <input type="file" id="file-input-sli">
 <button onclick="loadAndParseXLSX()">Load and parse XLS</button>
-<div id="svgContainer"></div>
+<div id="threeContainer"></div>
+<!-- Последняя версия Three.js -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+
+<!-- Или с дополнительными модулями (например, OrbitControls) -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.min.js"></script>
 
 
 <script type="module">
-    import init, { convert_sli_xsl_to_json } from "./pkg/dxf_reader.js";
+    import init, {convert_sli_xsl_to_json} from "./pkg/dxf_reader.js";
 
     async function loadAndParseXLSX() {
         await init(); // Инициализация wasm
@@ -47,146 +52,139 @@
         reader.onload = async () => {
             let bytes = new Uint8Array(reader.result);
             let jsonResult = convert_sli_xsl_to_json(text, bytes);
-            const data = JSON.parse(jsonResult)
+            const data = JSON.parse(jsonResult);
             console.log("Результат:", data);
 
             const dataZ = new Set();
-            for(const item of data){
-                for(const vertex of item.vertices){
-                    dataZ.add(vertex.z)
+            for (const item of data) {
+                for (const vertex of item.vertices) {
+                    dataZ.add(vertex.z);
                 }
             }
-            for(const z of dataZ) {
-                if (data.filter(item => item.vertices.every(i => i.z === z)).length === 0) {
-                    continue;
-                }
-                console.log(dataZ, data.filter(item => item.vertices.every(i => i.z === z)).length);
 
-                const svg = document.createElement("svg");
-                svg.setAttribute("id", `id-${Math.round(z * 1000)}`);
-                svg.setAttribute("width", "1500");
-                svg.setAttribute("height", "1200");
-                const header = document.createElement("h1");
-                header.textContent = `Z = ${z}`;
-                document.getElementById("svgContainer").append(header);
-                document.getElementById("svgContainer").append(svg);
-
-
-                const draw = SVG().addTo(`#id-${Math.round(z * 1000)}`).size(1500, 1200);
-
-                const scale = 30; // Масштаб
-                const offsetX = 100, offsetY = 150; // Смещение
-                function transformPoint(point) {
-                    return {x: point.y * scale + offsetX, y: point.x * scale + offsetY};
-                }
-
-                // data.reverse()
-                let scales = new Set();
-
-                for (const item of data.filter(item => item.vertices.every(i => i.z === z))) {
-                    scales.add(Math.max(...item.row.as1))
-                }
-
-                const min_scale = Math.min(...Array.from(scales))
-                const max_scale = Math.max(...Array.from(scales))
-                let scalesArray = Array.from(scales)
-                scalesArray.sort()
-                const grad = scalesArray.map((i) => {
-                    return [(i / max_scale), `rgb(255, ${255 - Math.round(i * 255 / max_scale)}, 0)`]
-                })
-
-
-                const gradient = draw.gradient('linear', function (add) {
-                    for (const i of grad) {
-                        add.stop(i[0], i[1]);
-                    }
-                });
-                draw.rect(1500, 20).move(50, 40).fill(gradient);
-
-                const colorScaleMap = Object.fromEntries(grad)
-                for (const [index, item] of data.filter(item => item.vertices.every(i => i.z === z)).entries()) {
-                    let points = item.vertices.map(v => {
-                        const {x, y} = transformPoint(v);
-                        return `${x},${y}`;
-                    }).join(' ');
-                    let scale = Math.max(...item.row.as1)
-                    draw.polygon(points).fill(colorScaleMap[scale / max_scale]).stroke({
-                        width: 1,
-                        color: 'green'
-                    }).attr({'data-index': item.row.id});
-
-                    let centroid = item.vertices.reduce((acc, v) => {
-                        acc.x += v.x;
-                        acc.y += v.y;
-                        return acc;
-                    }, {x: 0, y: 0});
-                    centroid.x /= item.vertices.length;
-                    centroid.y /= item.vertices.length;
-                    let {x, y} = transformPoint(centroid);
-                    draw.text(`${scale}`).center(x, y).font({size: 8}).fill('black');
-                }
-            }
+            const container = document.getElementById("threeContainer");
+            container.innerHTML = "";
 
             for (const z of dataZ) {
+                const sliceData = data.filter(item => item.vertices.every(i => i.z === z));
+                if (sliceData.length <= 30) continue;
 
-                // Создаем SVG контейнер
-                // const draw = SVG().addTo(`#id-${z}`).size(1500, 1200);
-                // console.log(z)
-                //
-                // const scale = 30; // Масштаб
-                // const offsetX = 100, offsetY = 150; // Смещение
-                // function transformPoint(point) {
-                //     return {x: point.y * scale + offsetX, y: point.x * scale + offsetY};
-                // }
-                //
-                // data.reverse()
-                // let scales = new Set();
-                //
-                // for (const item of data.filter(item => item.vertices.every(i => i.z === z))) {
-                //     scales.add(Math.max(...item.row.as1))
-                // }
-                //
-                // const min_scale = Math.min(...Array.from(scales))
-                // const max_scale = Math.max(...Array.from(scales))
-                // let scalesArray = Array.from(scales)
-                // scalesArray.sort()
-                // const grad = scalesArray.map((i) => {
-                //     return [(i / max_scale), `rgb(255, ${255 - Math.round(i * 255 / max_scale)}, 0)`]
-                // })
-                //
-                //
-                // const gradient = draw.gradient('linear', function (add) {
-                //     for (const i of grad) {
-                //         add.stop(i[0], i[1]);
-                //     }
-                // });
-                // draw.rect(1500, 20).move(50, 40).fill(gradient);
-                //
-                // const colorScaleMap = Object.fromEntries(grad)
-                // for (const [index, item] of data.filter(item => item.vertices.every(i => i.z === z)).entries()) {
-                //     let points = item.vertices.map(v => {
-                //         const {x, y} = transformPoint(v);
-                //         return `${x},${y}`;
-                //     }).join(' ');
-                //     let scale = Math.max(...item.row.as1)
-                //     draw.polygon(points).fill(colorScaleMap[scale / max_scale]).stroke({
-                //         width: 1,
-                //         color: 'green'
-                //     }).attr({'data-index': item.row.id});
-                //
-                //     let centroid = item.vertices.reduce((acc, v) => {
-                //         acc.x += v.x;
-                //         acc.y += v.y;
-                //         return acc;
-                //     }, {x: 0, y: 0});
-                //     centroid.x /= item.vertices.length;
-                //     centroid.y /= item.vertices.length;
-                //     let {x, y} = transformPoint(centroid);
-                //     draw.text(`${scale}`).center(x, y).font({size: 8}).fill('black');
-                // }
+                const scene = new THREE.Scene();
+                scene.background = new THREE.Color(0xffffff);
+
+                const width = 800;
+                const height = 800;
+                const camera = new THREE.OrthographicCamera(
+                    width / -2,
+                    width / 2,
+                    height / 2,
+                    height / -2,
+                    0.1,
+                    2000
+                );
+                camera.position.set(0, 0, 1000);
+                camera.lookAt(0, 0, 0);
+
+                const renderer = new THREE.WebGLRenderer({antialias: true});
+                renderer.setSize(800, 800);
+                renderer.setPixelRatio(window.devicePixelRatio);
+
+                const header = document.createElement("h2");
+                header.innerText = `Z = ${z}`;
+                container.appendChild(header);
+                container.appendChild(renderer.domElement);
+
+                const scale = 15;
+                const offsetX = 0, offsetY = 0;
+
+                function transformPoint(p) {
+                    return {
+                        x: p.y * scale + offsetX,
+                        y: -p.x * scale + offsetY
+                    };
+                }
+
+                // Сначала вычисляем границы
+                let minX = Infinity, maxX = -Infinity;
+                let minY = Infinity, maxY = -Infinity;
+
+                for (const item of sliceData) {
+                    const points = item.vertices.map(transformPoint);
+                    points.forEach(p => {
+                        minX = Math.min(minX, p.x);
+                        maxX = Math.max(maxX, p.x);
+                        minY = Math.min(minY, p.y);
+                        maxY = Math.max(maxY, p.y);
+                    });
+                }
+
+                // Вычисляем центр и масштаб после того, как у нас есть все границы
+                const centerX = (minX + maxX) / 2;
+                const centerY = (minY + maxY) / 2;
+                const viewScale = Math.min(
+                    width / (maxX - minX || 1),  // Защита от деления на 0
+                    height / (maxY - minY || 1)
+                ) * 0.8;
+
+                for (const item of sliceData) {
+                    const points = item.vertices.map(p => {
+                        const transformed = transformPoint(p);
+                        return {
+                            x: (transformed.x - centerX) * viewScale,
+                            y: (transformed.y - centerY) * viewScale
+                        };
+                    });
+
+                    if (points.length === 3 || points.length === 4) {
+                        // Создаем геометрию напрямую
+                        const geometry = new THREE.BufferGeometry();
+                        const vertices = [];
+
+                        // Добавляем все точки как есть, без разделения на треугольники
+                        for (const point of points) {
+                            vertices.push(point.x, point.y, 0);
+                        }
+
+                        // Добавляем первую точку снова для замыкания фигуры
+                        vertices.push(points[0].x, points[0].y, 0);
+
+                        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+
+                        const material = new THREE.LineBasicMaterial({
+                            color: 0xFF0000,
+                            linewidth: 1
+                        });
+
+                        // Используем LineLoop вместо Mesh для отрисовки контура
+                        const line = new THREE.LineLoop(geometry, material);
+                        scene.add(line);
+
+                        // Обновляем позиционирование меток
+                        const centroid = points.reduce((acc, p) => ({
+                            x: acc.x + p.x,
+                            y: acc.y + p.y
+                        }), {x: 0, y: 0});
+
+                        centroid.x /= points.length;
+                        centroid.y /= points.length;
+
+                        const label = document.createElement('div');
+                        label.style.position = 'absolute';
+                        label.style.color = '#000000';
+                        label.style.fontSize = '10px';
+                        label.innerText = item.node_id;
+                        label.style.left = `${width / 2 + centroid.x}px`;
+                        label.style.top = `${height / 2 - centroid.y}px`;
+                        container.appendChild(label);
+                    }
+                }
+                renderer.render(scene, camera);
+
             }
-        };
+
+    };
     }
+
 
     // Делаем функцию доступной глобально
     window.loadAndParseXLSX = loadAndParseXLSX;
