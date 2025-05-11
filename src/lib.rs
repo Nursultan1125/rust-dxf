@@ -207,7 +207,7 @@ fn is_in_same_plane(points: &Vec<Vertex>, tolerance: f64) -> bool {
 }
 
 pub fn parse_xlsx_wasm(data: &[u8]) -> Vec<RowData> {
-    match parse_xlsx_from_bytes(data) {
+    match _parse_xlsx_from_bytes(data) {
         Ok(parsed) => {
             console::log_1(&format!("✅ Успешный парсинг: {} записей", parsed.len()).into());
             parsed
@@ -221,7 +221,8 @@ pub fn parse_xlsx_wasm(data: &[u8]) -> Vec<RowData> {
 
 
 fn parse_xlsx_from_bytes(data: &[u8]) -> Result<Vec<RowData>, String> {
-    let mut workbook: Xlsx<_> = calamine::Reader::new(std::io::Cursor::new(data))
+    let cursor = std::io::Cursor::new(data);
+    let mut workbook = calamine::open_workbook_auto_from_rs(cursor)
         .map_err(|e| format!("Ошибка загрузки: {}", e))?;
 
     // Получаем все имена вкладок
@@ -368,6 +369,74 @@ pub fn get_indexes(data: &str) -> Vec<SerializableEntity> {
     entities
 }
 
+
+fn _parse_xlsx_from_bytes(data: &[u8]) -> Result<Vec<RowData>, String> {
+    let cursor = std::io::Cursor::new(data);
+    let mut workbook = calamine::open_workbook_auto_from_rs(cursor)
+        .map_err(|e| format!("Ошибка загрузки: {}", e))?;
+
+    let sheet_names = workbook.sheet_names().to_vec();
+    let mut results = Vec::new();
+
+    for sheet_name in sheet_names {
+        let range = workbook.worksheet_range(&sheet_name).map_err(|e| e.to_string())?;
+
+        let mut current_row: Option<RowData> = None;
+
+        for (row_idx, row) in range.rows().enumerate() {
+            // Логируем всю строку для отладки
+            let row_debug: Vec<String> = row.iter().enumerate().map(|(i, cell)| {
+                format!("Col{}: {}", i+1, cell.to_string())
+            }).collect();
+
+            // Обработка ID
+            let id = match row.get(0) {
+                Some(Data::Float(f)) => *f as usize,
+                Some(Data::Int(i)) => *i as usize,
+                Some(Data::String(s)) => s.parse().unwrap_or(0),
+                _ => {
+                    continue;
+                }
+            } as i32;
+
+            // Если нашли новый ID - сохраняем предыдущий ряд
+            if let Some(prev) = current_row.take() {
+                results.push(prev);
+            }
+
+            current_row = Some(RowData {
+                id,
+                as1: parse_column(&row, 1),
+                as2: parse_column(&row, 2),
+                as3: parse_column(&row, 3),
+                as4: parse_column(&row, 4),
+            });
+        }
+
+        if let Some(last) = current_row.take() {
+            results.push(last);
+        }
+    }
+
+    Ok(results)
+}
+
+// Вспомогательная функция для парсинга столбцов
+fn parse_column(row: &[Data], index: usize) -> Vec<f64> {
+    row.get(index).map_or_else(
+        || vec![0.0],
+        |cell| match cell {
+            Data::Float(f) => vec![*f],
+            Data::Int(i) => vec![*i as f64],
+            Data::String(s) => s.split(',')
+                .filter_map(|part| part.trim().parse().ok())
+                .collect(),
+            _ => vec![0.0]
+        }
+    )
+}
+
+
 // pub fn get_entity_by_index(entities: Vec<SerializableEntity>, index: usize) -> Option<&SerializableEntity> {
 //     entities.get(index - 1)
 // }
@@ -377,16 +446,16 @@ pub fn convert_sli_xsl_to_json(sli_data: &str, data: &[u8]) -> String {
     let entities = get_indexes(sli_data);
     let xlsx = parse_xlsx_wasm(data);
     let mut entities_with_xlsx: Vec<EntityWithXlsx> = Vec::new();
-    // for row in xlsx {
-    //     if let Some(entity) = entities.get(row.id as usize - 1) {
-    //         entities_with_xlsx.push(EntityWithXlsx{
-    //             entity_type: entity.entity_type.clone(),
-    //             vertices: entity.vertices.clone(),
-    //             row,
-    //         })
-    //     }
-    //
-    // }
+    for row in xlsx {
+        if let Some(entity) = entities.get(row.id as usize - 1) {
+            entities_with_xlsx.push(EntityWithXlsx{
+                entity_type: entity.entity_type.clone(),
+                vertices: entity.vertices.clone(),
+                row,
+            })
+        }
 
-    serde_json::to_string(&entities).expect("Failed to serialize to JSON")
+    }
+
+    serde_json::to_string(&entities_with_xlsx).expect("Failed to serialize to JSON")
 }

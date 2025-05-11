@@ -2,38 +2,58 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DXF Reader</title>
+    <title>DXF to JSON with WebAssembly</title>
+    <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@latest/dist/svg.min.js"></script>
 </head>
 <body>
-<div style="margin: 20px;">
-    <input type="file" id="file-input">
-    <input type="file" id="file-input-sli">
-    <button onclick="loadAndParseXLSX()">Load and parse XLS</button>
-</div>
-<div id="threeContainer" style="display: flex; flex-wrap: wrap; gap: 20px;"></div>
 
+
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Frontend Project</title>
+</head>
+<body>
+<h1>Hello, Frontend!</h1>
+<!--<input type="file" id="fileInput"/>-->
+<!--<div id="cad-view"></div>-->
+<!--<pre id="output"></pre>-->
+<!--<script src="index.js" type="module"></script>-->
+
+<input type="file" id="file-input">
+<input type="file" id="file-input-sli">
+<button onclick="loadAndParseXLSX()">Load and parse XLS</button>
+<div id="threeContainer"></div>
+<!-- Последняя версия Three.js -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+
+<!-- Или с дополнительными модулями (например, OrbitControls) -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.min.js"></script>
+
 
 <script type="module">
     import init, {convert_sli_xsl_to_json} from "./pkg/dxf_reader.js";
 
     async function loadAndParseXLSX() {
-        await init();
+        await init(); // Инициализация wasm
 
-        const file = document.getElementById("file-input").files[0];
-        const file_sli = document.getElementById("file-input-sli").files[0];
-
-        if (!file || !file_sli) return alert("Пожалуйста, выберите оба файла!");
-
+        let file = document.getElementById("file-input").files[0];
+        let file_sli = document.getElementById("file-input-sli").files[0];
         const text = await file_sli.text();
-        const reader = new FileReader();
+        if (!file) return alert("Выберите файл!");
 
+        let reader = new FileReader();
+        reader.readAsArrayBuffer(file);
         reader.onload = async () => {
-            const bytes = new Uint8Array(reader.result);
-            const jsonResult = convert_sli_xsl_to_json(text, bytes);
+            let bytes = new Uint8Array(reader.result);
+            let jsonResult = convert_sli_xsl_to_json(text, bytes);
             const data = JSON.parse(jsonResult);
+            console.log("Результат:", data);
 
             const dataZ = new Set();
             for (const item of data) {
@@ -46,26 +66,27 @@
             container.innerHTML = "";
 
             for (const z of dataZ) {
-                const sliceData = data.filter(item =>
-                    item.vertices.every(i => i.z === z)
-                );
+                const sliceData = data.filter(item => item.vertices.every(i => i.z === z));
                 if (sliceData.length <= 30) continue;
 
                 const scene = new THREE.Scene();
                 scene.background = new THREE.Color(0xffffff);
 
-                const width = 1200;  // Увеличили ширину
-                const height = 1200; // Увеличили высоту
+                const width = 800;
+                const height = 800;
                 const camera = new THREE.OrthographicCamera(
-                    width / -2, width / 2,
-                    height / 2, height / -2,
-                    0.1, 2000
+                    width / -2,
+                    width / 2,
+                    height / 2,
+                    height / -2,
+                    0.1,
+                    2000
                 );
                 camera.position.set(0, 0, 1000);
                 camera.lookAt(0, 0, 0);
 
                 const renderer = new THREE.WebGLRenderer({antialias: true});
-                renderer.setSize(width, height);
+                renderer.setSize(800, 800);
                 renderer.setPixelRatio(window.devicePixelRatio);
 
                 const header = document.createElement("h2");
@@ -83,6 +104,7 @@
                     };
                 }
 
+                // Сначала вычисляем границы
                 let minX = Infinity, maxX = -Infinity;
                 let minY = Infinity, maxY = -Infinity;
 
@@ -96,12 +118,13 @@
                     });
                 }
 
+                // Вычисляем центр и масштаб после того, как у нас есть все границы
                 const centerX = (minX + maxX) / 2;
                 const centerY = (minY + maxY) / 2;
                 const viewScale = Math.min(
-                    width / (maxX - minX || 1),
+                    width / (maxX - minX || 1),  // Защита от деления на 0
                     height / (maxY - minY || 1)
-                ) * 0.95;
+                ) * 0.8;
 
                 for (const item of sliceData) {
                     const points = item.vertices.map(p => {
@@ -112,47 +135,51 @@
                         };
                     });
 
-                    // Только линии — без заливки
                     if (points.length === 3 || points.length === 4) {
+                        // Создаем геометрию напрямую
+                        const geometry = new THREE.BufferGeometry();
                         const vertices = [];
-                        const numbers = [];
-                        const numberPositions = [];
 
-                        if(points.length === 4){
-                            vertices.push(points[0].x, points[0].y, 0);
-                            vertices.push(points[1].x, points[1].y, 0);
-                            vertices.push(points[2].x, points[2].y, 0);
-                            vertices.push(points[3].x, points[3].y, 0);
+                        // Добавляем все точки как есть, без разделения на треугольники
+                        for (const point of points) {
+                            vertices.push(point.x, point.y, 0);
                         }
-                        if(points.length === 3){
-                            vertices.push(points[0].x, points[0].y, 0);
-                            vertices.push(points[1].x, points[1].y, 0);
-                            vertices.push(points[2].x, points[2].y, 0);
 
-                        }
-                        // Замыкаем контур
+                        // Добавляем первую точку снова для замыкания фигуры
                         vertices.push(points[0].x, points[0].y, 0);
 
-                        const geometry = new THREE.BufferGeometry();
                         geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
 
                         const material = new THREE.LineBasicMaterial({
-                            color: 0xff0000, // чёрный контур
+                            color: 0xFF0000,
                             linewidth: 1
                         });
 
-                        const line = new THREE.Line(geometry, material);
+                        // Используем LineLoop вместо Mesh для отрисовки контура
+                        const line = new THREE.LineLoop(geometry, material);
                         scene.add(line);
+
+                        // Обновляем позиционирование меток
+                        const centroid = points.reduce((acc, p) => ({
+                            x: acc.x + p.x,
+                            y: acc.y + p.y
+                        }), {x: 0, y: 0});
+
+                        centroid.x /= points.length;
+                        centroid.y /= points.length;
                     }
                 }
                 renderer.render(scene, camera);
 
             }
+
         };
-        reader.readAsArrayBuffer(file);
     }
 
+
+    // Делаем функцию доступной глобально
     window.loadAndParseXLSX = loadAndParseXLSX;
 </script>
+
 </body>
 </html>
