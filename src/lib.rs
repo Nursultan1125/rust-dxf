@@ -465,24 +465,27 @@ pub fn convert_sli_xsl_to_json(sli_data: &str, data: &[u8]) -> String {
 pub fn convert_sli_full_xsl_to_json(sli_data: &str, data: &[u8]) -> String {
     let entities = get_indexes(sli_data);
     let xlsx = parse_xlsx_wasm(data);
+
+    // Build a HashMap for fast lookup
+    let xlsx_map: std::collections::HashMap<i32, RowData> = xlsx.into_iter()
+        .map(|row| (row.id, row))
+        .collect();
+    console::log_1(&format!("✅  {:?}", xlsx_map).into());
     let mut entities_with_xlsx: Vec<EntityWithXlsx> = Vec::new();
     for (index, entity) in entities.into_iter().enumerate() {
-        let row = xlsx.iter()
-            .find(|p| p.id as usize == index)
-            .map(|row| row.clone())  // или &row если нужно заимствование
-            .unwrap_or_else(|| RowData {
-                id: index as i32,
-                as1: vec![],
-                as2: vec![],
-                as3: vec![],
-                as4: vec![],
-            });
+        let id = index as i32;
+        let row = xlsx_map.get(&id).cloned().unwrap_or_else(|| RowData {
+            id,
+            as1: vec![],
+            as2: vec![],
+            as3: vec![],
+            as4: vec![],
+        });
         entities_with_xlsx.push(EntityWithXlsx{
             entity_type: entity.entity_type.clone(),
             vertices: entity.vertices.clone(),
-            row: row.clone(),
-        })
-
+            row,
+        });
     }
 
     serde_json::to_string(&entities_with_xlsx).expect("Failed to serialize to JSON")
