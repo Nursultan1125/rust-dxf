@@ -2,6 +2,7 @@ use std::collections::{HashMap};
 use dxf::{Drawing};
 use serde::{Serialize, Deserialize};
 use std::io::Cursor;
+use std::ptr::read;
 use xml::EventReader;
 use xml::reader::XmlEvent;
 use wasm_bindgen::prelude::*;
@@ -454,6 +455,33 @@ pub fn convert_sli_xsl_to_json(sli_data: &str, data: &[u8]) -> String {
                 row,
             })
         }
+
+    }
+
+    serde_json::to_string(&entities_with_xlsx).expect("Failed to serialize to JSON")
+}
+
+#[wasm_bindgen]
+pub fn convert_sli_full_xsl_to_json(sli_data: &str, data: &[u8]) -> String {
+    let entities = get_indexes(sli_data);
+    let xlsx = parse_xlsx_wasm(data);
+    let mut entities_with_xlsx: Vec<EntityWithXlsx> = Vec::new();
+    for (index, entity) in entities.into_iter().enumerate() {
+        let row = xlsx.iter()
+            .find(|p| p.id as usize == index)
+            .map(|row| row.clone())  // или &row если нужно заимствование
+            .unwrap_or_else(|| RowData {
+                id: index as i32,
+                as1: vec![],
+                as2: vec![],
+                as3: vec![],
+                as4: vec![],
+            });
+        entities_with_xlsx.push(EntityWithXlsx{
+            entity_type: entity.entity_type.clone(),
+            vertices: entity.vertices.clone(),
+            row: row.clone(),
+        })
 
     }
 
