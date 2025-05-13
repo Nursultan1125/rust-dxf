@@ -147,7 +147,7 @@
 
             for (const z of dataZ) {
                 const sliceData = data.filter(item => item.vertices.every(i => i.z === z));
-                if (sliceData.length <= 30) continue;
+                if (sliceData.length <= 30 || sliceData.every((e) => e.entity_type === "LINE")) continue;
                 let minValue = Math.min(...sliceData.map((e) => e.row.as1[0])) || 0;
                 let maxValue = Math.max(...sliceData.map((e) => e.row.as1[0])) || 5;
                 function getColorByValue(value) {
@@ -178,6 +178,18 @@
                 const renderer = new THREE.WebGLRenderer({antialias: true});
                 renderer.setSize(1600, 1600);
                 renderer.setPixelRatio(window.devicePixelRatio);
+
+                // Add OrbitControls for zoom and pan
+                const controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.enableRotate = false; // Disable rotation, only zoom and pan
+                controls.enableZoom = true;
+                controls.enablePan = true;
+                controls.minDistance = 0;  // Минимальная дистанция zoom
+                controls.maxDistance = Infinity;  // Максимальная дистанция
+                controls.addEventListener('change', function() {
+                    camera.updateProjectionMatrix();
+                    renderer.render(scene, camera);
+                });
 
                 const header = document.createElement("h2");
                 header.innerText = `Z = ${z}`;
@@ -306,9 +318,25 @@
                         
                         scene.add(textMesh);
                     }
+                    else if (points.length === 2) {
+                        // Draw a line
+                        const geometry = new THREE.BufferGeometry();
+                        const vertices = [];
+                        for (const point of points) {
+                            vertices.push(point.x, point.y, 0);
+                        }
+                        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+                        const material = new THREE.LineBasicMaterial({
+                            color: 0x000000,
+                            linewidth: 1,
+                            depthTest: false
+                        });
+                        const line = new THREE.Line(geometry, material);
+                        scene.add(line);
+                    }
                 }
                 renderer.render(scene, camera);
-                if(z > 10) break;
+                // if(z > 30) break;
             }
 
         };
